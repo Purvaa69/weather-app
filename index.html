@@ -632,9 +632,10 @@
   }
 
   function formatTimeFromOffset(dt, offsetSeconds, options) {
-    const local = new Date((dt + offsetSeconds) * 1000);
-    return local.toLocaleString(undefined, options);
-  }
+  const local = new Date(dt * 1000); // ignore offset
+  return local.toLocaleString(undefined, options);
+}
+
 
   // ------------- UI UPDATE FUNCTIONS (same structure as before) -------------
 
