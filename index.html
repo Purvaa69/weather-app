@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Weather App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #20232a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 10px;
+      color: #fff;
+    }
+
+    .app-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .phone {
+      width: 320px;
+      height: 640px;
+      background: #050815;
+      border-radius: 32px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+    .view.active { display: flex; }
+
+    .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      font-size: 14px;
+      color: #cfd3e0;
+    }
+
+    .phone-header .title { font-weight: 600; }
+
+    .phone-header .sub {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .phone-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .phone-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-icon,
+    .back-btn,
+    .settings-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .main-temp {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .main-temp .icon { font-size: 40px; margin-bottom: 6px; }
+
+    .main-temp .value {
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .main-temp .text {
+      margin-top: 6px;
+      font-size: 16px;
+      color: #d9deec;
+    }
+
+    .main-temp .feels {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #8c92a7;
+    }
+
+    .metric-grid {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric-card {
+      background: #111624;
+      border-radius: 18px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
+
+    .metric-label {
+      color: #9aa0b8;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .phone-footer-nav {
+      padding-top: 14px;
+      display: flex;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      justify-content: space-between;
+      font-size: 11px;
+      color: #9aa0b8;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .nav-item span.icon { font-size: 18px; }
+
+    .nav-item.active { color: #4ea1ff; }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .nav-item.active .nav-dot { background: #4ea1ff; }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .top-row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .screen-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e4e7f2;
+    }
+
+    .location-row {
+      margin-top: 6px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .subdate {
+      margin-top: 3px;
+      font-size: 12px;
+      color: #9096ac;
+    }
+
+    .hourly-strip {
+      margin-top: 30px;
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .hour-card {
+      flex: 0 0 70px;
+      background: #101522;
+      border-radius: 18px;
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 12px;
+      color: #b4bad0;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .hour-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+    }
+
+    .hour-card.active {
+      background: #2f64ff;
+      color: #fff;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.5);
+    }
+
+    .hour-time {
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .hour-icon { font-size: 18px; margin-bottom: 4px; }
+
+    .hour-temp {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .hourly-strip::-webkit-scrollbar { height: 4px; }
+    .hourly-strip::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+    }
+
+    .daily-title {
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .daily-list {
+      margin-top: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .daily-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 6px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .daily-item:hover {
+      background: rgba(255,255,255,0.04);
+      transform: translateY(-1px);
+    }
+
+    .daily-item.selected {
+      background: rgba(79, 127, 255, 0.27);
+    }
+
+    .daily-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .daily-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #111624;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .daily-day { font-weight: 500; }
+
+    .daily-right {
+      font-size: 13px;
+      color: #cdd2e5;
+    }
+
+    .daily-high { font-weight: 600; }
+
+    .daily-low {
+      margin-left: 4px;
+      opacity: 0.7;
+    }
+
+    .status-banner {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.7);
+      color: #d1d6f5;
+      z-index: 5;
+    }
+
+    .status-banner.error {
+      background: rgba(173, 25, 25, 0.8);
+      color: #ffe6e6;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <div class="phone">
+
+      <div id="status" class="status-banner">Detecting location…</div>
+
+      <!-- TODAY VIEW -->
+      <div id="view-today" class="view active">
+        <div class="phone-header">
+          <div class="phone-header-left">
+            <span class="title" id="today-location">Loading…</span>
+            <span class="sub" id="today-time"></span>
+          </div>
+          <div class="phone-header-right">
+            <!-- NEW: refresh + add-location buttons -->
+            <div class="pill-icon" id="refresh-btn">↻</div>
+            <div class="pill-icon" id="add-location-btn">+</div>
+          </div>
+        </div>
+
+        <div class="main-temp">
+          <div class="icon" id="today-icon">☁️</div>
+          <div class="value" id="today-temp">--°</div>
+          <div class="text" id="today-desc">---</div>
+          <div class="feels" id="today-feels"></div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Humidity</div>
+            <div class="metric-value" id="metric-humidity">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Wind</div>
+            <div class="metric-value" id="metric-wind">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">UV Index</div>
+            <div class="metric-value" id="metric-uv">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Visibility</div>
+            <div class="metric-value" id="metric-vis">--</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOURLY VIEW -->
+      <div id="view-hourly" class="view">
+        <div class="top-row">
+          <div class="top-row-left">
+            <div class="back-btn" data-view-target="today">‹</div>
+            <div class="screen-title">Hourly Forecast</div>
+          </div>
+          <div class="settings-btn">⚙️</div>
+        </div>
+
+        <div class="location-row" id="hourly-location">--</div>
+        <div class="subdate" id="hourly-date">--</div>
+
+        <div class="hourly-strip" id="hourly-strip">
+          <!-- JS will inject hour cards -->
+        </div>
+      </div>
+
+      <!-- DAILY VIEW -->
+      <div id="view-daily" class="view">
+        <div class="phone-header">
+          <div class="phone-header-left">
+            <span class="title" id="daily-location">--</span>
+          </div>
+          <div class="phone-header-right">
+            ⋮
+          </div>
+        </div>
+
+        <div class="daily-title">7-Day Forecast</div>
+        <div class="daily-list" id="daily-list">
+          <!-- JS will inject daily items -->
+        </div>
+      </div>
+
+      <!-- BOTTOM NAV (Radar removed) -->
+      <div class="phone-footer-nav">
+        <div class="nav-item active" data-view="today">
+          <span class="icon">📍</span>
+          <span>Today</span>
+          <div class="nav-dot"></div>
+        </div>
+        <div class="nav-item" data-view="hourly">
+          <span class="icon">🕒</span>
+          <span>Hourly</span>
+          <div class="nav-dot"></div>
+        </div>
+        <div class="nav-item" data-view="daily">
+          <span class="icon">📅</span>
+          <span>Daily</span>
+          <div class="nav-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---- NO API KEY, NO NETWORK CALLS ----
+  // We use sample data + geolocation to pick the nearest city
+
+  const views = {
+    today: document.getElementById("view-today"),
+    hourly: document.getElementById("view-hourly"),
+    daily: document.getElementById("view-daily"),
+  };
+
+  const navItems = document.querySelectorAll(".nav-item[data-view]");
+  const statusBanner = document.getElementById("status");
+  const refreshBtn = document.getElementById("refresh-btn");
+  const addLocationBtn = document.getElementById("add-location-btn");
+
+  let currentCityName = null;
+
+  // Basic info + sample weather per city
+  const CITY_DATA = {
+    "Mumbai": {
+      lat: 19.0760, lon: 72.8777,
+      timezone: "Asia/Kolkata",
+      timezone_offset: 19800,
+      current: {
+        temp: 30, feels_like: 33, humidity: 75,
+        wind_speed: 3.5, uvi: 7.1, visibility: 8000,
+        weather: [{ main: "Clouds", description: "partly cloudy" }]
+      },
+      hourlyTemps: [30, 31, 32, 31, 30, 29, 28, 27, 27, 26, 26, 25],
+      hourlyCond:  ["Clouds","Clear","Clear","Clear","Clouds","Clouds","Rain","Rain","Clouds","Clouds","Clear","Clear"],
+      daily: [
+        { max: 33, min: 27, main: "Clouds" },
+        { max: 34, min: 27, main: "Clear" },
+        { max: 32, min: 26, main: "Rain"  },
+        { max: 31, min: 26, main: "Clouds"},
+        { max: 30, min: 25, main: "Clear" },
+        { max: 29, min: 25, main: "Rain"  },
+        { max: 31, min: 26, main: "Clouds"}
+      ]
+    },
+    "Pune": {
+      lat: 18.5204, lon: 73.8567,
+      timezone: "Asia/Kolkata",
+      timezone_offset: 19800,
+      current: {
+        temp: 28, feels_like: 29, humidity: 60,
+        wind_speed: 2.2, uvi: 6.4, visibility: 9000,
+        weather: [{ main: "Clear", description: "clear sky" }]
+      },
+      hourlyTemps: [28, 29, 30, 31, 30, 29, 28, 27, 26, 25, 24, 23],
+      hourlyCond:  ["Clear","Clear","Clear","Clear","Clouds","Clouds","Clouds","Rain","Rain","Clouds","Clear","Clear"],
+      daily: [
+        { max: 32, min: 22, main: "Clear" },
+        { max: 33, min: 22, main: "Clear" },
+        { max: 31, min: 21, main: "Clouds"},
+        { max: 30, min: 21, main: "Rain"  },
+        { max: 29, min: 20, main: "Clouds"},
+        { max: 30, min: 21, main: "Clear" },
+        { max: 31, min: 22, main: "Clear" }
+      ]
+    },
+    "Delhi": {
+      lat: 28.7041, lon: 77.1025,
+      timezone: "Asia/Kolkata",
+      timezone_offset: 19800,
+      current: {
+        temp: 35, feels_like: 37, humidity: 40,
+        wind_speed: 4.5, uvi: 8.2, visibility: 10000,
+        weather: [{ main: "Clear", description: "sunny" }]
+      },
+      hourlyTemps: [35, 36, 37, 38, 37, 36, 34, 33, 32, 30, 29, 28],
+      hourlyCond:  ["Clear","Clear","Clear","Clear","Clear","Clear","Clouds","Clouds","Clouds","Haze","Haze","Clear"],
+      daily: [
+        { max: 39, min: 28, main: "Clear" },
+        { max: 40, min: 29, main: "Clear" },
+        { max: 38, min: 27, main: "Clouds"},
+        { max: 37, min: 26, main: "Haze" },
+        { max: 36, min: 26, main: "Clear" },
+        { max: 35, min: 25, main: "Clouds"},
+        { max: 37, min: 26, main: "Clear" }
+      ]
+    },
+    "Bangalore": {
+      lat: 12.9716, lon: 77.5946,
+      timezone: "Asia/Kolkata",
+      timezone_offset: 19800,
+      current: {
+        temp: 24, feels_like: 25, humidity: 70,
+        wind_speed: 3.0, uvi: 5.3, visibility: 9000,
+        weather: [{ main: "Clouds", description: "broken clouds" }]
+      },
+      hourlyTemps: [24, 25, 26, 26, 25, 24, 23, 22, 22, 21, 21, 20],
+      hourlyCond:  ["Clouds","Clouds","Clouds","Rain","Rain","Clouds","Clouds","Clouds","Clear","Clear","Clear","Clear"],
+      daily: [
+        { max: 27, min: 19, main: "Clouds"},
+        { max: 28, min: 19, main: "Rain"  },
+        { max: 27, min: 18, main: "Rain"  },
+        { max: 26, min: 18, main: "Clouds"},
+        { max: 27, min: 18, main: "Clear" },
+        { max: 28, min: 19, main: "Clear" },
+        { max: 27, min: 18, main: "Clouds"}
+      ]
+    },
+    "Hyderabad": {
+      lat: 17.3850, lon: 78.4867,
+      timezone: "Asia/Kolkata",
+      timezone_offset: 19800,
+      current: {
+        temp: 29, feels_like: 32, humidity: 68,
+        wind_speed: 3.1, uvi: 7.0, visibility: 8500,
+        weather: [{ main: "Clouds", description: "scattered clouds" }]
+      },
+      hourlyTemps: [29, 30, 31, 32, 31, 30, 29, 28, 27, 26, 25, 25],
+      hourlyCond:  ["Clouds","Clouds","Clear","Clear","Clear","Clouds","Rain","Rain","Clouds","Clouds","Clear","Clear"],
+      daily: [
+        { max: 33, min: 25, main: "Clouds"},
+        { max: 34, min: 25, main: "Clear" },
+        { max: 32, min: 24, main: "Rain"  },
+        { max: 31, min: 24, main: "Clouds"},
+        { max: 30, min: 23, main: "Clear" },
+        { max: 31, min: 24, main: "Clear" },
+        { max: 32, min: 24, main: "Clouds"}
+      ]
+    }
+  };
+
+  function setStatus(text, isError = false) {
+    if (!text) {
+      statusBanner.style.display = "none";
+      return;
+    }
+    statusBanner.textContent = text;
+    statusBanner.classList.toggle("error", isError);
+    statusBanner.style.display = "inline-block";
+  }
+
+  function showView(name) {
+    Object.values(views).forEach(v => v.classList.remove("active"));
+    views[name].classList.add("active");
+    navItems.forEach(n => n.classList.remove("active"));
+    const nav = document.querySelector(`.nav-item[data-view='${name}']`);
+    if (nav) nav.classList.add("active");
+  }
+
+  navItems.forEach(item => {
+    item.addEventListener("click", () => {
+      const target = item.getAttribute("data-view");
+      if (target) showView(target);
+    });
+  });
+
+  document.querySelector(".back-btn").addEventListener("click", () => {
+    showView("today");
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    if (currentCityName) {
+      selectCity(currentCityName, true);
+    }
+  });
+
+  // --------- ADD LOCATION BUTTON (choose from preset cities) ----------
+  addLocationBtn.addEventListener("click", () => {
+    const available = Object.keys(CITY_DATA).join(", ");
+    let query = prompt("Choose city:\n" + available);
+    if (!query) return;
+
+    query = query.trim().toLowerCase();
+    const found = Object.keys(CITY_DATA).find(
+      name => name.toLowerCase() === query
+    );
+
+    if (!found) {
+      alert("City not available.\nTry: " + available);
+      return;
+    }
+
+    selectCity(found);
+  });
+
+  function weatherToEmoji(main) {
+    main = (main || "").toLowerCase();
+    if (main.includes("thunder")) return "⛈️";
+    if (main.includes("drizzle")) return "🌦️";
+    if (main.includes("rain")) return "🌧️";
+    if (main.includes("snow")) return "❄️";
+    if (main.includes("clear")) return "☀️";
+    if (main.includes("cloud")) return "☁️";
+    if (main.includes("mist") || main.includes("fog") || main.includes("haze")) return "🌫️";
+    return "🌤️";
+  }
+
+  function formatTimeFromOffset(dt, offsetSeconds, options) {
+    const local = new Date((dt + offsetSeconds) * 1000);
+    return local.toLocaleString(undefined, options);
+  }
+
+  // ------------- UI UPDATE FUNCTIONS (same structure as before) -------------
+
+  function updateToday(data, placeName) {
+    const current = data.current;
+    const tzOffset = data.timezone_offset;
+
+    document.getElementById("today-location").textContent = placeName || data.timezone;
+    document.getElementById("today-time").textContent = formatTimeFromOffset(
+      current.dt,
+      tzOffset,
+      { weekday: "long", hour: "numeric", minute: "2-digit" }
+    );
+
+    const temp = Math.round(current.temp);
+    const feels = Math.round(current.feels_like);
+    const desc = current.weather[0].description;
+
+    document.getElementById("today-temp").textContent = `${temp}°`;
+    document.getElementById("today-desc").textContent = desc[0].toUpperCase() + desc.slice(1);
+    document.getElementById("today-feels").textContent = `Feels like ${feels}°`;
+    document.getElementById("today-icon").textContent = weatherToEmoji(current.weather[0].main);
+
+    document.getElementById("metric-humidity").textContent = `${current.humidity}%`;
+    document.getElementById("metric-wind").textContent = `${Math.round(current.wind_speed)} m/s`;
+    document.getElementById("metric-uv").textContent = current.uvi.toFixed(1);
+    document.getElementById("metric-vis").textContent = `${(current.visibility / 1000).toFixed(1)} km`;
+  }
+
+  function updateHourly(data, placeName) {
+    const strip = document.getElementById("hourly-strip");
+    strip.innerHTML = "";
+    const tzOff = data.timezone_offset;
+
+    document.getElementById("hourly-location").textContent = placeName || data.timezone;
+    document.getElementById("hourly-date").textContent = formatTimeFromOffset(
+      data.current.dt,
+      tzOff,
+      { weekday: "long", month: "short", day: "numeric" }
+    );
+
+    data.hourly.forEach((h, idx) => {
+      const card = document.createElement("div");
+      card.className = "hour-card" + (idx === 0 ? " active" : "");
+      const timeLabel =
+        idx === 0 ? "Now" : formatTimeFromOffset(h.dt, tzOff, { hour: "numeric" });
+      const icon = weatherToEmoji(h.weather[0].main);
+      const temp = Math.round(h.temp);
+
+      card.innerHTML = `
+        <div class="hour-time">${timeLabel}</div>
+        <div class="hour-icon">${icon}</div>
+        <div class="hour-temp">${temp}°</div>
+      `;
+
+      card.addEventListener("click", () => {
+        strip.querySelectorAll(".hour-card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+      });
+
+      strip.appendChild(card);
+    });
+  }
+
+  function updateDaily(data, placeName) {
+    const list = document.getElementById("daily-list");
+    list.innerHTML = "";
+    const tzOff = data.timezone_offset;
+
+    document.getElementById("daily-location").textContent = placeName || data.timezone;
+
+    data.daily.forEach((d, idx) => {
+      const item = document.createElement("div");
+      item.className = "daily-item" + (idx === 0 ? " selected" : "");
+      const dayName =
+        idx === 0
+          ? "Today"
+          : formatTimeFromOffset(d.dt, tzOff, { weekday: "long" });
+      const icon = weatherToEmoji(d.weather[0].main);
+      const high = Math.round(d.temp.max);
+      const low = Math.round(d.temp.min);
+
+      item.innerHTML = `
+        <div class="daily-left">
+          <div class="daily-icon">${icon}</div>
+          <div class="daily-day">${dayName}</div>
+        </div>
+        <div class="daily-right">
+          <span class="daily-high">${high}°</span>
+          <span class="daily-low">${low}°</span>
+        </div>
+      `;
+
+      item.addEventListener("click", () => {
+        list.querySelectorAll(".daily-item").forEach(i => i.classList.remove("selected"));
+        item.classList.add("selected");
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  // ------------- Create "OpenWeather-like" structure from our CITY_DATA -----
+
+  function buildWeatherPayload(cityObj) {
+    const now = Math.floor(Date.now() / 1000);
+
+    const payload = {
+      timezone: cityObj.timezone,
+      timezone_offset: cityObj.timezone_offset,
+      current: {
+        ...cityObj.current,
+        dt: now
+      },
+      hourly: [],
+      daily: []
+    };
+
+    // hourly
+    cityObj.hourlyTemps.forEach((t, idx) => {
+      const main = cityObj.hourlyCond[idx] || cityObj.current.weather[0].main;
+      payload.hourly.push({
+        dt: now + idx * 3600,
+        temp: t,
+        weather: [{ main }]
+      });
+    });
+
+    // daily
+    cityObj.daily.forEach((d, idx) => {
+      payload.daily.push({
+        dt: now + idx * 86400,
+        temp: { max: d.max, min: d.min },
+        weather: [{ main: d.main }]
+      });
+    });
+
+    return payload;
+  }
+
+  // ------------- Choose / Guess City ----------------
+
+  function selectCity(cityName, fromRefresh = false) {
+    const cityObj = CITY_DATA[cityName];
+    if (!cityObj) return;
+
+    currentCityName = cityName;
+    const data = buildWeatherPayload(cityObj);
+
+    updateToday(data, cityName);
+    updateHourly(data, cityName);
+    updateDaily(data, cityName);
+
+    setStatus("");
+
+  }
+
+  function guessCityFromCoords(lat, lon) {
+    let bestCity = null;
+    let bestDist = Infinity;
+
+    Object.entries(CITY_DATA).forEach(([name, info]) => {
+      const dLat = lat - info.lat;
+      const dLon = lon - info.lon;
+      const dist = dLat * dLat + dLon * dLon;
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestCity = name;
+      }
+    });
+
+    return bestCity;
+  }
+
+  function initLocation() {
+    if (!navigator.geolocation) {
+      setStatus("Geolocation not available, showing Mumbai sample.", true);
+      selectCity("Mumbai");
+      return;
+    }
+
+    setStatus("Detecting location…");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const city = guessCityFromCoords(latitude, longitude) || "Mumbai";
+        selectCity(city);
+      },
+      () => {
+        setStatus("Location denied, showing Mumbai sample.", true);
+        selectCity("Mumbai");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  // INITIALIZE
+  initLocation();
+</script>
+
+</body>
+</html>
